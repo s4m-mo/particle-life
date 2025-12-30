@@ -1,14 +1,7 @@
 tasks:
-  build:
-    - go build main.go
-
-  deploy:
-    - SET! GOOS linux
-    - go build -o dist/ParticleLife main.go
-    - SET! GOOS windows
-    - go build -o dist/ParticleLife.exe main.go
-    - SET! GOOS darwin
-    - go build -o dist/ParticleLife.app main.go
-
   run:
-    - .\main.exe
+    - GOOS=windows go run main.go
+
+  default:
+    - GOOS=windows go build -o build/main.exe main.go
+    - ./build/main.exe

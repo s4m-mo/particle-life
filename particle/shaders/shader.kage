@@ -1,0 +1,27 @@
+//kage:unit pixels
+
+package main
+
+// Uniform variables.
+var Cursor vec2
+
+// Fragment is the entry point of the fragment shader.
+// Fragment returns the color value for the current position.
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	col := vec4(0)
+	// col := vec4(0.1, 0.1, 0.1, 0) * smoothstep(25, 20, distance(dstPos.xy, Cursor.xy))
+	
+	const r = 5.0
+
+	for x := -r; x <= r; x++ {
+		for y := -r; y <= r; y++ {
+			off := vec2(x, y)
+			
+			if imageSrc0At(srcPos + off).a == 1.0 {
+				col += imageSrc0At(srcPos + off) * smoothstep(r, 1, length(off))
+			}
+		}
+	}
+
+	return col
+}
