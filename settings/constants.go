@@ -1,15 +1,15 @@
 package settings
 
 const (
-	WorldWidth  = 400
-	WorldHeight = 400
+	WorldWidth  = 800
+	WorldHeight = 800
 	UIWidth     = 240
 	UIHeight    = WorldHeight
 
 	ScreenHeight = WorldHeight
 	ScreenWidth  = WorldWidth + UIWidth
 
-	DisplayScale = 2
+	DisplayScale = 1
 
 	ColourSaturation = 1.0
 	ColourValue      = 0.8

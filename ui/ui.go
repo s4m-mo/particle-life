@@ -2,6 +2,7 @@ package ui
 
 import (
 	_ "embed"
+	"image"
 	"life/particle"
 	"life/settings"
 	"log"
@@ -13,14 +14,20 @@ var (
 	//go:embed shader.kage
 	shaderSource []byte
 
-	shader *ebiten.Shader
+	//go:embed gridshader.kage
+	gridShaderSource []byte
+
+	shader     *ebiten.Shader
+	gridShader *ebiten.Shader
 )
 
 func init() {
 	var err error
 
-	shader, err = ebiten.NewShader(shaderSource)
-	if err != nil {
+	if shader, err = ebiten.NewShader(shaderSource); err != nil {
+		log.Fatal(err)
+	}
+	if gridShader, err = ebiten.NewShader(gridShaderSource); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -29,12 +36,17 @@ type UI struct {
 	particles *particle.ParticleSet
 
 	wasDown bool
+	debugUI bool
 }
 
 func NewUI(particles *particle.ParticleSet) *UI {
 	return &UI{
 		particles: particles,
 	}
+}
+
+func (ui *UI) ToggleDebugUI() {
+	ui.debugUI = !ui.debugUI
 }
 
 func (ui *UI) Update() {
@@ -59,4 +71,22 @@ func (ui *UI) Draw(screen *ebiten.Image) {
 	op.GeoM = geom
 
 	screen.DrawRectShader(w, h, shader, op)
+}
+
+func (ui *UI) DrawDebugUI(screen *ebiten.Image) {
+	if !ui.debugUI {
+		return
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Uniforms = map[string]any{
+		"GridSpacing": settings.MaxInfluenceRadius,
+	}
+
+	world := ebiten.NewImageFromImage(
+		screen.SubImage(image.Rect(0, 0, settings.WorldWidth, settings.WorldHeight)),
+	)
+	op.Images[0] = world
+
+	screen.DrawRectShader(settings.WorldWidth, settings.WorldHeight, gridShader, op)
 }
