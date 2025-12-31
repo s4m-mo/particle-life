@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type Game struct {
@@ -16,6 +17,11 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		g.particles.RegenerateAttractionMatrix()
+	}
+
 	g.particles.Update()
 	g.ui.Update()
 	return nil
@@ -39,7 +45,7 @@ func main() {
 	ebiten.SetWindowTitle("Particle Life")
 
 	g := &Game{}
-	g.particles = particle.NewCentredParticleSet(10, 5)
+	g.particles = particle.NewCentredParticleSet(700, 6)
 	g.ui = ui.NewUI(g.particles)
 
 	if err := ebiten.RunGame(g); err != nil {
