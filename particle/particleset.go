@@ -104,6 +104,15 @@ func NewCentredParticleSet(n int, variants int) *ParticleSet {
 		nVariants:        variants,
 	}
 
+	ps.RegenerateCentralPoints(n, variants)
+
+	ps.variantColours = computeColours(variants)
+	ps.computeSpaceDivisions()
+
+	return ps
+}
+
+func (ps *ParticleSet) RegenerateCentralPoints(n int, variants int) {
 	for i := 0; i < n; i++ {
 		ps.particles[i] = &Particle{
 			x:       math.Mod(centralRandPoint(settings.WorldWidth), settings.WorldWidth),
@@ -113,11 +122,6 @@ func NewCentredParticleSet(n int, variants int) *ParticleSet {
 			variant: uint(rand.Intn(variants)),
 		}
 	}
-
-	ps.variantColours = computeColours(variants)
-	ps.computeSpaceDivisions()
-
-	return ps
 }
 
 func (ps *ParticleSet) SetNVariants(n int) {

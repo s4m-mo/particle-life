@@ -3,10 +3,14 @@
 package main
 
 // Uniform variables.
-var Cursor vec2
+var GridSpacing float
 
 // Fragment is the entry point of the fragment shader.
 // Fragment returns the color value for the current position.
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return vec4(0.01, 0.01, 0.01, 1.0)
+	if (mod(dstPos.x+1, GridSpacing) < 3) || (mod(dstPos.y+1, GridSpacing) < 3) {
+		return imageSrc0UnsafeAt(dstPos.xy) * 0.8 + 0.2 * vec4(1)
+	}
+
+	return imageSrc0UnsafeAt(dstPos.xy)
 }
