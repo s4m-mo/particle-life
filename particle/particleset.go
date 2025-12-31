@@ -6,13 +6,14 @@ import (
 	"life/settings"
 	"life/utils"
 	"log"
+	"math"
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 var (
-	//go:embed shaders/shader.kage
+	//go:embed shader.kage
 	shaderSource []byte
 
 	shader *ebiten.Shader
@@ -45,15 +46,39 @@ func computeColours(variants int) []color.Color {
 	return variantColours
 }
 
+func computeRandomAttractionMatrix(variants int) [][]float64 {
+	out := make([][]float64, variants)
+	for i := range out {
+		out[i] = make([]float64, variants)
+
+		for j := range out[i] {
+			// out[i][j] = rand.Float64()*2 - 1
+			out[i][j] = rand.NormFloat64()
+		}
+	}
+
+	return out
+}
+
+type DividedSpace [][][]*Particle
+
 type ParticleSet struct {
 	particles []*Particle
 
-	variantColours []color.Color
+	nVariants        int
+	variantColours   []color.Color
+	attractionMatrix [][]float64
+
+	nWidth  int
+	nHeight int
+	space   DividedSpace
 }
 
 func NewRandomParticleSet(n int, variants int) *ParticleSet {
 	ps := &ParticleSet{
-		particles: make([]*Particle, n),
+		particles:        make([]*Particle, n),
+		attractionMatrix: computeRandomAttractionMatrix(variants),
+		nVariants:        variants,
 	}
 
 	for i := 0; i < n; i++ {
@@ -67,19 +92,22 @@ func NewRandomParticleSet(n int, variants int) *ParticleSet {
 	}
 
 	ps.variantColours = computeColours(variants)
+	ps.computeSpaceDivisions()
 
 	return ps
 }
 
 func NewCentredParticleSet(n int, variants int) *ParticleSet {
 	ps := &ParticleSet{
-		particles: make([]*Particle, n),
+		particles:        make([]*Particle, n),
+		attractionMatrix: computeRandomAttractionMatrix(variants),
+		nVariants:        variants,
 	}
 
 	for i := 0; i < n; i++ {
 		ps.particles[i] = &Particle{
-			x:       centralRandPoint(settings.WorldWidth),
-			y:       centralRandPoint(settings.WorldHeight),
+			x:       math.Mod(centralRandPoint(settings.WorldWidth), settings.WorldWidth),
+			y:       math.Mod(centralRandPoint(settings.WorldHeight), settings.WorldHeight),
 			vx:      rand.NormFloat64(),
 			vy:      rand.NormFloat64(),
 			variant: uint(rand.Intn(variants)),
@@ -87,6 +115,7 @@ func NewCentredParticleSet(n int, variants int) *ParticleSet {
 	}
 
 	ps.variantColours = computeColours(variants)
+	ps.computeSpaceDivisions()
 
 	return ps
 }
@@ -103,25 +132,150 @@ func (ps *ParticleSet) GetParticles() []*Particle {
 	return ps.particles
 }
 
-func (ps *ParticleSet) Update() {
+func (ps *ParticleSet) RegenerateAttractionMatrix() {
+	ps.attractionMatrix = computeRandomAttractionMatrix(ps.nVariants)
+}
+
+func generateSpaceDivisionMatrix(nWidth, nHeight int) DividedSpace {
+
+	space := make([][][]*Particle, nWidth)
+	for i := range space {
+		space[i] = make([][]*Particle, nHeight)
+
+		for j := range space[i] {
+			space[i][j] = make([]*Particle, 0)
+		}
+	}
+
+	return space
+}
+
+func (ps *ParticleSet) computeSpaceDivisions() {
+	ps.nWidth = int(math.Ceil(settings.WorldWidth / settings.MaxInfluenceRadius))
+	ps.nHeight = int(math.Ceil(settings.WorldHeight / settings.MaxInfluenceRadius))
+
+	sp := generateSpaceDivisionMatrix(ps.nWidth, ps.nHeight)
+	ps.space = sp
+
+	ps.computeSpaceDivisionLocations()
+}
+
+func (ps *ParticleSet) computeSpaceDivisionLocations() {
 	for _, v := range ps.particles {
-		(*v).Update()
+		nx, ny := v.CurrentQuadrant()
+		ps.space[nx][ny] = append(ps.space[nx][ny], v)
 	}
 }
 
+// Updates particle based on surrounding particles and returns the particle's new quadrant
+func (ps *ParticleSet) computeParticleUpdate(o *Particle) (int, int) {
+	// Compute which quadrants are needed to be searched
+	quadrants := o.FindInfluencingQuadrants()
+	home := quadrants[0]
+
+	forceX := 0.0
+	forceY := 0.0
+
+	// Calculate influcences
+	for _, quadrant := range quadrants {
+		// Fix negative quadrant indices and overflows on the other side
+		nx := quadrant[0]
+		ny := quadrant[1]
+
+		for nx < 0 {
+			nx += ps.nWidth
+		}
+
+		for ny < 0 {
+			ny += ps.nHeight
+		}
+
+		nx = nx % ps.nWidth
+		ny = ny % ps.nHeight
+
+		items := ps.space[nx][ny]
+
+		// Handle wrap-around coordinates
+		var wrappingOffset [2]float64
+
+		if int(math.Abs(float64(nx-home[0]))) == ps.nWidth-1 {
+			wrappingOffset[0] = settings.MaxInfluenceRadius * float64(ps.nWidth)
+			if home[0] < nx {
+				wrappingOffset[0] *= -1
+			}
+		}
+
+		if int(math.Abs(float64(ny-home[1]))) == ps.nHeight-1 {
+			wrappingOffset[1] = settings.MaxInfluenceRadius * float64(ps.nHeight)
+			if home[1] < ny {
+				wrappingOffset[1] *= -1
+			}
+		}
+
+		for _, i := range items {
+			dx := i.x - o.x + wrappingOffset[0]
+			dy := i.y - o.y + wrappingOffset[1]
+
+			// dist := (dx + dy) // Manhattan Distance
+			dist := math.Sqrt(math.Pow(dx, 2) + math.Pow(dy, 2))
+
+			f := PolyForce(dist, ps.attractionMatrix[o.variant][i.variant]) * settings.UniversalForceMultiplier
+
+			// Add components of force in each direction
+			if dist != 0 {
+				forceX += f * (dx / dist)
+				forceY += f * (dy / dist)
+			}
+		}
+	}
+
+	// Apply forces to velocity
+	o.vx += forceX
+	o.vy += forceY
+
+	// Apply velocity
+	o.Update()
+
+	// Compute new quadrant
+	return o.CurrentQuadrant()
+}
+
+func (ps *ParticleSet) Update() {
+	newQuads := make(chan QuadInfo, len(ps.particles))
+
+	for _, p := range ps.particles {
+		go func(outChan chan<- QuadInfo) {
+			nx, ny := ps.computeParticleUpdate(p)
+			outChan <- QuadInfo{X: nx, Y: ny, P: p}
+		}(newQuads)
+	}
+
+	// Generate new space
+	newSpace := generateSpaceDivisionMatrix(ps.nWidth, ps.nHeight)
+
+	// Receive new quadrants from the goroutines
+	for range len(ps.particles) {
+		msg := <-newQuads
+		newSpace[msg.X][msg.Y] = append(newSpace[msg.X][msg.Y], msg.P)
+	}
+
+	// Replace old space
+	ps.space = newSpace
+}
+
 func (ps *ParticleSet) Draw(screen *ebiten.Image) {
-	image := ebiten.NewImageFromImage(screen)
+	image := ebiten.NewImage(settings.WorldWidth, settings.WorldHeight)
 
 	for _, v := range ps.particles {
 		(*v).Draw(image, ps.variantColours[(*v).variant])
 	}
 
-	w, h := screen.Bounds().Dx(), screen.Bounds().Dy()
+	w, h := image.Bounds().Dx(), image.Bounds().Dy()
 	cx, cy := ebiten.CursorPosition()
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]any{
-		"Cursor": []float32{float32(cx), float32(cy)},
+		"Cursor": []float64{float64(cx), float64(cy)},
 	}
 
 	op.Images[0] = image
