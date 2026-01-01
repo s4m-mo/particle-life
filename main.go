@@ -6,14 +6,16 @@ import (
 	"life/settings"
 	"life/ui"
 	"log"
+	"strconv"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
-	NParticles = 900
-	NVariants  = 10
+	NParticles = 8000
+	NVariants  = 12
 )
 
 type Game struct {
@@ -34,7 +36,9 @@ func (g *Game) Update() error {
 		g.ui.ToggleDebugUI()
 	}
 
-	g.particles.Update()
+	dt := 1.0 / float64(ebiten.TPS())
+
+	g.particles.Update(dt)
 	g.ui.Update()
 	return nil
 }
@@ -44,6 +48,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.particles.Draw(screen)
 	g.ui.Draw(screen)
 	g.ui.DrawDebugUI(screen)
+
+	ebitenutil.DebugPrintAt(
+		screen,
+		"FPS: "+strconv.Itoa(int(ebiten.ActualFPS()))+" TPS: "+strconv.Itoa(int(ebiten.ActualTPS())),
+		settings.WorldWidth+10,
+		10,
+	)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -58,7 +69,7 @@ func main() {
 	ebiten.SetWindowTitle("Particle Life")
 
 	g := &Game{}
-	g.particles = particle.NewCentredParticleSet(NParticles, NVariants)
+	g.particles = particle.NewRandomParticleSet(NParticles, NVariants)
 	g.ui = ui.NewUI(g.particles)
 
 	if err := ebiten.RunGame(g); err != nil {

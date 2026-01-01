@@ -12,13 +12,14 @@ const (
 	DisplayScale = 1
 
 	ColourSaturation = 1.0
-	ColourValue      = 0.8
+	ColourValue      = 0.6
 )
 
 var (
-	MaxInfluenceRadius       float64 = 100
-	UniversalForceMultiplier float64 = 0.01
-	Friction                 float64 = 0.9
+	MaxInfluenceRadius       float64 = 50
+	UniversalForceMultiplier float64 = 0.6
+	Friction                 float64 = 0.92
+	CursorRepelForce         float64 = 0.015
 
 	InverseMaxInfluenceRadiusSquared float64 = 1 / (MaxInfluenceRadius * MaxInfluenceRadius)
 )
