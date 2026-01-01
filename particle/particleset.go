@@ -172,7 +172,7 @@ func (ps *ParticleSet) computeSpaceDivisionLocations() {
 }
 
 // Updates particle based on surrounding particles and returns the particle's new quadrant
-func (ps *ParticleSet) computeParticleUpdate(o *Particle) (int, int) {
+func (ps *ParticleSet) computeParticleUpdate(o *Particle, dt float64) (int, int) {
 	// Compute which quadrants are needed to be searched
 	quadrants := o.FindInfluencingQuadrants()
 	home := quadrants[0]
@@ -234,8 +234,8 @@ func (ps *ParticleSet) computeParticleUpdate(o *Particle) (int, int) {
 	}
 
 	// Apply forces to velocity
-	o.vx += forceX
-	o.vy += forceY
+	o.vx += forceX * dt
+	o.vy += forceY * dt
 
 	// Apply velocity
 	o.Update()
@@ -244,14 +244,24 @@ func (ps *ParticleSet) computeParticleUpdate(o *Particle) (int, int) {
 	return o.CurrentQuadrant()
 }
 
-func (ps *ParticleSet) Update() {
+func (ps *ParticleSet) Update(dt float64) {
+	isCursorPressed := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
+	cx, cy := ebiten.CursorPosition()
+
 	newQuads := make(chan QuadInfo, len(ps.particles))
 
 	for _, p := range ps.particles {
-		go func(outChan chan<- QuadInfo) {
-			nx, ny := ps.computeParticleUpdate(p)
+		go func(outChan chan<- QuadInfo, delta, cursorX, cursorY float64, cursorPressed bool) {
+
+			// Repel from cursor
+			if cursorPressed && (SquaredEuclideanDistance(p.x, p.y, cursorX, cursorY) < 625) {
+				p.vx += (p.x - cursorX) * settings.CursorRepelForce
+				p.vy += (p.y - cursorY) * settings.CursorRepelForce
+			}
+
+			nx, ny := ps.computeParticleUpdate(p, delta)
 			outChan <- QuadInfo{X: nx, Y: ny, P: p}
-		}(newQuads)
+		}(newQuads, dt, float64(cx), float64(cy), isCursorPressed)
 	}
 
 	// Generate new space

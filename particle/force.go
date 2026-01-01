@@ -9,8 +9,8 @@ var (
 	// Polynomial Force Parameters
 	polyP float64 = 10                                  // Distance under which the force decreases then flips
 	polyM float64 = settings.MaxInfluenceRadius - polyP // Width of polynomial portion
-	polyA float64 = 4                                   // Power of the polynomial portion (how quickly it decays)
-	polyQ float64 = 3                                   // Magnitude of repulsion at close distance
+	polyA float64 = 2                                   // Power of the polynomial portion (how quickly it decays)
+	polyQ float64 = 5                                   // Magnitude of repulsion at close distance
 
 	polyMA float64 = math.Pow(polyM, polyA) // Precomputed value for later
 )
@@ -32,4 +32,8 @@ func PolyForce(x float64, attractionFactor float64) float64 {
 	default:
 		return 0
 	}
+}
+
+func SquaredEuclideanDistance(x1, y1, x2, y2 float64) float64 {
+	return math.Pow(x1-x2, 2) + math.Pow(y1-y2, 2)
 }
