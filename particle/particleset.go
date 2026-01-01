@@ -245,23 +245,30 @@ func (ps *ParticleSet) computeParticleUpdate(o *Particle, dt float64) (int, int)
 }
 
 func (ps *ParticleSet) Update(dt float64) {
-	isCursorPressed := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
+	isCursorPressedRepel := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
+	isCursorPressedAttract := ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
 	cx, cy := ebiten.CursorPosition()
 
 	newQuads := make(chan QuadInfo, len(ps.particles))
 
 	for _, p := range ps.particles {
-		go func(outChan chan<- QuadInfo, delta, cursorX, cursorY float64, cursorPressed bool) {
+		go func(outChan chan<- QuadInfo, delta, cursorX, cursorY float64, repel, attract bool) {
 
 			// Repel from cursor
-			if cursorPressed && (SquaredEuclideanDistance(p.x, p.y, cursorX, cursorY) < 625) {
-				p.vx += (p.x - cursorX) * settings.CursorRepelForce
-				p.vy += (p.y - cursorY) * settings.CursorRepelForce
+			if SquaredEuclideanDistance(p.x, p.y, cursorX, cursorY) < settings.CursorForceRadiusSquared {
+				switch {
+				case repel:
+					p.vx += (p.x - cursorX) * settings.CursorRepelForce
+					p.vy += (p.y - cursorY) * settings.CursorRepelForce
+				case attract:
+					p.vx += (cursorX - p.x) * settings.CursorRepelForce
+					p.vy += (cursorY - p.y) * settings.CursorRepelForce
+				}
 			}
 
 			nx, ny := ps.computeParticleUpdate(p, delta)
 			outChan <- QuadInfo{X: nx, Y: ny, P: p}
-		}(newQuads, dt, float64(cx), float64(cy), isCursorPressed)
+		}(newQuads, dt, float64(cx), float64(cy), isCursorPressedRepel, isCursorPressedAttract)
 	}
 
 	// Generate new space
