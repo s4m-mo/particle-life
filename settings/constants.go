@@ -11,8 +11,9 @@ const (
 
 	DisplayScale = 1
 
-	ColourSaturation = 1.0
-	ColourValue      = 0.6
+	ColourSaturation         = 1.0
+	ColourValue              = 0.6
+	CursorForceRadiusSquared = 625.0 // (radius squared to save computation on the square root)
 )
 
 var (

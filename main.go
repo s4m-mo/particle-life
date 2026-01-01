@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	NParticles = 8000
-	NVariants  = 12
+	NParticles = 100
+	NVariants  = 6
 )
 
 type Game struct {
@@ -62,9 +62,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
+	s := ebiten.Monitor().DeviceScaleFactor()
 	ebiten.SetWindowSize(
-		settings.ScreenWidth*settings.DisplayScale,
-		settings.ScreenHeight*settings.DisplayScale,
+		int(settings.ScreenWidth*settings.DisplayScale/s),
+		int(settings.ScreenHeight*settings.DisplayScale/s),
 	)
 	ebiten.SetWindowTitle("Particle Life")
 
