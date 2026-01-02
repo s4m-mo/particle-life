@@ -5,15 +5,13 @@ import (
 	"image"
 	"life/particle"
 	"life/settings"
+	"life/ui/elems"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 var (
-	//go:embed shader.kage
-	shaderSource []byte
-
 	//go:embed gridshader.kage
 	gridShaderSource []byte
 
@@ -24,9 +22,6 @@ var (
 func init() {
 	var err error
 
-	if shader, err = ebiten.NewShader(shaderSource); err != nil {
-		log.Fatal(err)
-	}
 	if gridShader, err = ebiten.NewShader(gridShaderSource); err != nil {
 		log.Fatal(err)
 	}
@@ -37,6 +32,8 @@ type UI struct {
 
 	wasDown bool
 	debugUI bool
+
+	elements []*elems.Element
 }
 
 func NewUI(particles *particle.ParticleSet) *UI {
@@ -49,28 +46,24 @@ func (ui *UI) ToggleDebugUI() {
 	ui.debugUI = !ui.debugUI
 }
 
-func (ui *UI) Update() {
+func (ui *UI) AddElement(elem elems.Element) {
+	ui.elements = append(ui.elements, &elem)
+}
 
+func (ui *UI) Update() {
+	cx, cy := ebiten.CursorPosition()
+	lmb := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
+	_, dy := ebiten.Wheel()
+
+	for _, el := range ui.elements {
+		(*el).Update(cx, cy, dy, lmb)
+	}
 }
 
 func (ui *UI) Draw(screen *ebiten.Image) {
-	image := ebiten.NewImage(settings.WorldWidth, settings.WorldHeight)
-
-	w, h := image.Bounds().Dx(), image.Bounds().Dy()
-	cx, cy := ebiten.CursorPosition()
-
-	geom := ebiten.GeoM{}
-	geom.Translate(settings.ScreenWidth-settings.UIWidth, 0)
-
-	op := &ebiten.DrawRectShaderOptions{}
-	op.Uniforms = map[string]any{
-		"Cursor": []float32{float32(cx), float32(cy)},
+	for _, el := range ui.elements {
+		(*el).Draw(screen)
 	}
-
-	op.Images[0] = image
-	op.GeoM = geom
-
-	screen.DrawRectShader(w, h, shader, op)
 }
 
 func (ui *UI) DrawDebugUI(screen *ebiten.Image) {

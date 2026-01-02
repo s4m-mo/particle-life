@@ -52,8 +52,8 @@ func computeRandomAttractionMatrix(variants int) [][]float64 {
 		out[i] = make([]float64, variants)
 
 		for j := range out[i] {
-			// out[i][j] = rand.Float64()*2 - 1
-			out[i][j] = rand.NormFloat64()
+			out[i][j] = rand.Float64()*2 - 1
+			// out[i][j] = rand.NormFloat64()
 		}
 	}
 
@@ -67,7 +67,7 @@ type ParticleSet struct {
 
 	nVariants        int
 	variantColours   []color.Color
-	attractionMatrix [][]float64
+	AttractionMatrix [][]float64
 
 	nWidth  int
 	nHeight int
@@ -77,19 +77,11 @@ type ParticleSet struct {
 func NewRandomParticleSet(n int, variants int) *ParticleSet {
 	ps := &ParticleSet{
 		particles:        make([]*Particle, n),
-		attractionMatrix: computeRandomAttractionMatrix(variants),
+		AttractionMatrix: computeRandomAttractionMatrix(variants),
 		nVariants:        variants,
 	}
 
-	for i := 0; i < n; i++ {
-		ps.particles[i] = &Particle{
-			x:       float64(rand.Intn(settings.WorldWidth)),
-			y:       float64(rand.Intn(settings.WorldHeight)),
-			vx:      rand.NormFloat64(),
-			vy:      rand.NormFloat64(),
-			variant: uint(rand.Intn(variants)),
-		}
-	}
+	ps.RegenerateUniformPoints(n, variants)
 
 	ps.variantColours = computeColours(variants)
 	ps.computeSpaceDivisions()
@@ -100,7 +92,7 @@ func NewRandomParticleSet(n int, variants int) *ParticleSet {
 func NewCentredParticleSet(n int, variants int) *ParticleSet {
 	ps := &ParticleSet{
 		particles:        make([]*Particle, n),
-		attractionMatrix: computeRandomAttractionMatrix(variants),
+		AttractionMatrix: computeRandomAttractionMatrix(variants),
 		nVariants:        variants,
 	}
 
@@ -112,11 +104,35 @@ func NewCentredParticleSet(n int, variants int) *ParticleSet {
 	return ps
 }
 
+func (ps *ParticleSet) RegenerateUniformPoints(n int, variants int) {
+	for i := 0; i < n; i++ {
+		ps.particles[i] = &Particle{
+			x:       float64(rand.Intn(settings.WorldWidth)),
+			y:       float64(rand.Intn(settings.WorldHeight)),
+			vx:      rand.NormFloat64(),
+			vy:      rand.NormFloat64(),
+			variant: uint(rand.Intn(variants)),
+		}
+	}
+}
+
 func (ps *ParticleSet) RegenerateCentralPoints(n int, variants int) {
 	for i := 0; i < n; i++ {
 		ps.particles[i] = &Particle{
 			x:       math.Mod(centralRandPoint(settings.WorldWidth), settings.WorldWidth),
 			y:       math.Mod(centralRandPoint(settings.WorldHeight), settings.WorldHeight),
+			vx:      rand.NormFloat64(),
+			vy:      rand.NormFloat64(),
+			variant: uint(rand.Intn(variants)),
+		}
+	}
+}
+
+func (ps *ParticleSet) RegenerateOuterPoints(n int, variants int) {
+	for i := 0; i < n; i++ {
+		ps.particles[i] = &Particle{
+			x:       math.Mod(centralRandPoint(settings.WorldWidth)+(settings.WorldWidth/2), settings.WorldWidth),
+			y:       math.Mod(centralRandPoint(settings.WorldHeight)+(settings.WorldHeight/2), settings.WorldHeight),
 			vx:      rand.NormFloat64(),
 			vy:      rand.NormFloat64(),
 			variant: uint(rand.Intn(variants)),
@@ -136,8 +152,20 @@ func (ps *ParticleSet) GetParticles() []*Particle {
 	return ps.particles
 }
 
+func (ps *ParticleSet) SetAttractionMatrix(v float64) {
+	for i := range ps.AttractionMatrix {
+		for j := range ps.AttractionMatrix[i] {
+			ps.AttractionMatrix[i][j] = v
+		}
+	}
+}
+
 func (ps *ParticleSet) RegenerateAttractionMatrix() {
-	ps.attractionMatrix = computeRandomAttractionMatrix(ps.nVariants)
+	for i := range ps.AttractionMatrix {
+		for j := range ps.AttractionMatrix[i] {
+			ps.AttractionMatrix[i][j] = rand.Float64()*2 - 1
+		}
+	}
 }
 
 func generateSpaceDivisionMatrix(nWidth, nHeight int) DividedSpace {
@@ -223,7 +251,7 @@ func (ps *ParticleSet) computeParticleUpdate(o *Particle, dt float64) (int, int)
 			// dist := (dx + dy) // Manhattan Distance
 			dist := math.Sqrt(math.Pow(dx, 2) + math.Pow(dy, 2))
 
-			f := PolyForce(dist, ps.attractionMatrix[o.variant][i.variant]) * settings.UniversalForceMultiplier
+			f := PolyForce(dist, ps.AttractionMatrix[o.variant][i.variant]) * settings.UniversalForceMultiplier
 
 			// Add components of force in each direction
 			if dist != 0 {
@@ -245,9 +273,10 @@ func (ps *ParticleSet) computeParticleUpdate(o *Particle, dt float64) (int, int)
 }
 
 func (ps *ParticleSet) Update(dt float64) {
-	isCursorPressedRepel := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
-	isCursorPressedAttract := ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
 	cx, cy := ebiten.CursorPosition()
+
+	isCursorPressedRepel := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) && (cx < settings.WorldWidth)
+	isCursorPressedAttract := ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) && (cx < settings.WorldWidth)
 
 	newQuads := make(chan QuadInfo, len(ps.particles))
 
@@ -257,12 +286,12 @@ func (ps *ParticleSet) Update(dt float64) {
 			// Repel from cursor
 			if SquaredEuclideanDistance(p.x, p.y, cursorX, cursorY) < settings.CursorForceRadiusSquared {
 				switch {
-				case repel:
-					p.vx += (p.x - cursorX) * settings.CursorRepelForce
-					p.vy += (p.y - cursorY) * settings.CursorRepelForce
 				case attract:
 					p.vx += (cursorX - p.x) * settings.CursorRepelForce
 					p.vy += (cursorY - p.y) * settings.CursorRepelForce
+				case repel:
+					p.vx += (p.x - cursorX) * settings.CursorRepelForce
+					p.vy += (p.y - cursorY) * settings.CursorRepelForce
 				}
 			}
 
@@ -296,7 +325,8 @@ func (ps *ParticleSet) Draw(screen *ebiten.Image) {
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]any{
-		"Cursor": []float64{float64(cx), float64(cy)},
+		"C":   []float64{float64(cx), float64(cy)},
+		"Cr2": settings.CursorForceRadiusSquared,
 	}
 
 	op.Images[0] = image
