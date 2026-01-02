@@ -3,12 +3,13 @@
 package main
 
 // Uniform variables.
-var Cursor vec2
+var C vec2
+var Cr2 float
 
 // Fragment is the entry point of the fragment shader.
 // Fragment returns the color value for the current position.
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	col := vec4(0.2, 0.2, 0.2, 0.0) * smoothstep(25, 20, distance(dstPos.xy, Cursor.xy))
+	col := vec4(0.1, 0.1, 0.1, 0.0) * smoothstep(Cr2, Cr2*0.75, pow(dstPos.x-C.x, 2) + pow(dstPos.y-C.y, 2))
 	
 	const r = 4.0
 
@@ -17,7 +18,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			off := vec2(x, y)
 			
 			if imageSrc0At(srcPos + off).a == 1.0 {
-				col += imageSrc0At(srcPos + off) * smoothstep(r, 1, length(off))
+				col += imageSrc0At(srcPos + off) * smoothstep(r, 1, length(off)) * 0.6
 			}
 		}
 	}
