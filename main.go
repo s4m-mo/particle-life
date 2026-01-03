@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	NParticles = 2000
-	NVariants  = 4
+	NParticles = 5000
+	NVariants  = 6
 )
 
 var (
@@ -204,7 +204,7 @@ func SetupUI(u *ui.UI, p *particle.ParticleSet) {
 		)
 	}
 
-	helpText := "[L/R Click] Interact\n[-/+] Change cursor size\n[G] Toggle Debug Grid"
+	helpText := "[L/R Click] Interact\n[Scroll] To Edit Attraction Matrix\n[-/+] Change cursor size\n[G] Toggle Debug Grid"
 	helpTextSections := strings.Split(helpText, "\n")
 
 	for i, t := range helpTextSections {

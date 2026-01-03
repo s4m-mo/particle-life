@@ -27,7 +27,7 @@ const (
 var (
 	MaxInfluenceRadius       float64 = 60
 	UniversalForceMultiplier float64 = 0.6
-	Friction                 float64 = 0.92
+	Friction                 float64 = 0.924
 	CursorRepelForce         float64 = 0.015
 	CursorForceRadiusSquared float64 = 625.0 // (radius squared to save computation on the square root)
 
