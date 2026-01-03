@@ -53,7 +53,7 @@ func computeRandomAttractionMatrix(variants int) [][]float64 {
 
 		for j := range out[i] {
 			out[i][j] = rand.Float64()*2 - 1
-			// out[i][j] = rand.NormFloat64()
+			//out[i][j] = utils.Clamp(rand.NormFloat64()/3, -1, 1)
 		}
 	}
 
@@ -164,6 +164,7 @@ func (ps *ParticleSet) RegenerateAttractionMatrix() {
 	for i := range ps.AttractionMatrix {
 		for j := range ps.AttractionMatrix[i] {
 			ps.AttractionMatrix[i][j] = rand.Float64()*2 - 1
+			//ps.AttractionMatrix[i][j] = utils.Clamp(rand.NormFloat64()/3, -1, 1)
 		}
 	}
 }
