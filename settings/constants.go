@@ -25,7 +25,8 @@ const (
 )
 
 var (
-	MaxInfluenceRadius       float64 = 60
+	MaxInfluenceRadius float64 = 60
+
 	UniversalForceMultiplier float64 = 0.6
 	Friction                 float64 = 0.924
 	CursorRepelForce         float64 = 0.015

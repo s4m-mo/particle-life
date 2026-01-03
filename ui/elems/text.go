@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	FontSize       = 18
-	FontLineHeight = FontSize + 8
+	FontSize        = 18
+	FontLineSpacing = FontSize + 8
 )
 
 var fontface *text.GoTextFaceSource
@@ -56,6 +56,6 @@ func (t *TextElement) Draw(screen *ebiten.Image) {
 }
 
 func (t *TextElement) Width() int {
-	w, _ := text.Measure(t.content+" ", &text.GoTextFace{Source: fontface, Size: FontSize}, FontLineHeight)
+	w, _ := text.Measure(t.content+" ", &text.GoTextFace{Source: fontface, Size: FontSize}, FontLineSpacing)
 	return int(w)
 }

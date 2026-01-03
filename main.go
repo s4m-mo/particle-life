@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	NParticles = 5000
-	NVariants  = 6
+	NParticles = 4000
+	NVariants  = 7
 )
 
 var (
@@ -55,6 +55,13 @@ func (g *Game) Update() error {
 		)
 	}
 
+	cx, _ := ebiten.CursorPosition()
+	if cx > settings.WorldWidth {
+		ebiten.SetCursorShape(ebiten.CursorShapeDefault)
+	} else {
+		ebiten.SetCursorShape(ebiten.CursorShapePointer)
+	}
+
 	g.particles.Update(dt)
 	g.ui.Update()
 	return nil
@@ -78,6 +85,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return settings.ScreenWidth, settings.ScreenHeight
 }
 
+type ParamSet struct {
+	Name    string
+	Pointer *float64
+	High    float64
+	Low     float64
+}
+
 func SetupUI(u *ui.UI, p *particle.ParticleSet) {
 	const offsetX = settings.WorldWidth + settings.UIPadX
 
@@ -93,7 +107,7 @@ func SetupUI(u *ui.UI, p *particle.ParticleSet) {
 	Cy := H / 48
 	// Nh := H / Cx
 
-	titleReset := elems.NewTextElement("Reset:", offsetX, (2*Cx-elems.FontLineHeight)/2+settings.UIPadY)
+	titleReset := elems.NewTextElement("Reset:", offsetX, (2*Cx-elems.FontLineSpacing)/2+settings.UIPadY)
 	u.AddElement(titleReset)
 
 	btnWidth := (settings.UIWidth - (2 * settings.UIPadX) - titleReset.Width()) / 3
@@ -150,6 +164,9 @@ func SetupUI(u *ui.UI, p *particle.ParticleSet) {
 
 	cols := p.GetVariantColours()
 	const colourBarRemaining = settings.UIWidth - settings.UIColourBarWidth - 2*settings.UIPadX
+	onePercentUpdate := func(initial, wheel float64) float64 {
+		return initial + (wheel * 0.01)
+	}
 
 	variantCellSize := (colourBarRemaining / len(cols))
 	for i, v := range cols {
@@ -179,9 +196,7 @@ func SetupUI(u *ui.UI, p *particle.ParticleSet) {
 					offsetX+settings.UIColourBarWidth+(variantCellSize*i),
 					N*Cx+settings.UIPadY+settings.UIColourBarWidth+(variantCellSize*j),
 					variantCellSize, variantCellSize,
-					func(initial, wheel float64) float64 {
-						return initial + (wheel * 0.01)
-					},
+					onePercentUpdate,
 					&p.AttractionMatrix[j][i],
 					-1, 1,
 				),
@@ -203,6 +218,8 @@ func SetupUI(u *ui.UI, p *particle.ParticleSet) {
 			),
 		)
 	}
+
+	N += 2
 
 	helpText := "[L/R Click] Interact\n[Scroll] To Edit Attraction Matrix\n[-/+] Change cursor size\n[G] Toggle Debug Grid"
 	helpTextSections := strings.Split(helpText, "\n")
@@ -226,9 +243,10 @@ func main() {
 		int(settings.ScreenHeight*settings.DisplayScale/s),
 	)
 	ebiten.SetWindowTitle("Particle Life")
+	ebiten.SetVsyncEnabled(true)
 
 	g := &Game{}
-	g.particles = particle.NewRandomParticleSet(NParticles, NVariants)
+	g.particles = particle.NewCentredParticleSet(NParticles, NVariants)
 	g.ui = ui.NewUI(g.particles)
 
 	SetupUI(g.ui, g.particles)
