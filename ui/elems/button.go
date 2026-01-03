@@ -32,7 +32,7 @@ type Button struct {
 }
 
 func NewButton(s string, x, y, w, h int, listener func(), col, hCol, pCol color.Color) *Button {
-	tw, th := text.Measure(s, &text.GoTextFace{Source: fontface, Size: FontSize}, FontLineHeight)
+	tw, th := text.Measure(s, &text.GoTextFace{Source: fontface, Size: FontSize}, FontLineSpacing)
 
 	var dims Position
 	var txt *TextElement
