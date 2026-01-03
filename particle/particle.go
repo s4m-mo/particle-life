@@ -17,6 +17,7 @@ type Particle struct {
 	variant uint
 }
 
+// Update the position of the particle according to its current velocity
 func (p *Particle) Update() {
 	p.x = PositiveModulus(p.x+p.vx, settings.WorldWidth)
 	p.y = PositiveModulus(p.y+p.vy, settings.WorldHeight)
@@ -34,10 +35,12 @@ func PositiveModulus(v float64, m float64) float64 {
 	return math.Mod(v, m)
 }
 
+// Draw the particle to the screen (set a single pixel to be used by the shader later)
 func (p *Particle) Draw(screen *ebiten.Image, col color.Color) {
 	screen.Set(int(p.x), int(p.y), col)
 }
 
+/* Get the quadrants around the particle in which other particles can influence it. */
 func (p *Particle) FindInfluencingQuadrants() [4][2]int {
 	// (nx, ny) is the quadrant that the centre of the particle is in
 	nx, ny := p.CurrentQuadrant()
@@ -66,6 +69,7 @@ func (p *Particle) FindInfluencingQuadrants() [4][2]int {
 	}
 }
 
+/* Get the quadrant indices of the particle. */
 func (p *Particle) CurrentQuadrant() (int, int) {
 	nx := int(math.Floor(p.x / settings.MaxInfluenceRadius)) // Truncates as required automatically
 	ny := int(math.Floor(p.y / settings.MaxInfluenceRadius))
