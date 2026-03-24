@@ -6,6 +6,8 @@ A particle life simulation written in Go. In summary how it works is that...
 - This results in emergent dynamics and groups of particles that act as "organisms"
 - These can chase each other, consume each other and move around almost like simulated life forms
 
+You can interact with the simulation using the controls described in the bottom-right corner of the screen when running the simulation.
+
 I have always found the principle of emergence fascinating and this is an example I really like - from simple physics based simulation we get complex and advanced behaviours.
 
 As part of this project, I've implemented...
@@ -14,6 +16,8 @@ As part of this project, I've implemented...
 - Custom shaders
 - Physics and force calculations
 - Custom UI framework which works in the game engine that I chose
+
+None of the project is vibe-coded.
 
 ---
 
